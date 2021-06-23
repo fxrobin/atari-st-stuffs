@@ -5,6 +5,10 @@
 #include "fx_buffer.h"
 #include "fx_screen.h"
 
+#define locate(x, y) printf("\033Y%c%c", (char)(32 + y), (char)(32 + x))
+#define write_byte(value, address) (*address) = (__uint8_t)value
+#define read_byte(address) (*address)
+
 #define PSG_REGISTER_INDEX_ADDRESS (__uint8_t *)0xFF8800
 #define PSG_REGISTER_DATA_ADDRESS (__uint8_t *)0xFF8802
 #define SCANCODE_ADDRESS (__uint8_t *)0XFFFC02
@@ -12,12 +16,8 @@
 
 #define YM3_FILE "ancool1.ym"
 
-#define locate(x, y) printf("\033Y%c%c", (char)(32 + y), (char)(32 + x))
-#define write_byte(value, address) (*address) = (__uint8_t)value
-#define read_byte(address) (*address)
-
 // Bitmask for clearing INTERRUPTION SERVICE BIT 5 (Timer A)
-volatile unsigned char END_OF_INTERRUPT_TIMER_A = ~(1 << 5);
+volatile unsigned char END_OF_INTERRUPT_TIMER_A = ~(1 << 5); // 5th bit at 0
 
 // ASM routine prototype declaration
 void asm_timerA_Routine();
@@ -194,14 +194,11 @@ void run()
     // inits display in medium resolution with a custom palette
     screenContext = initMediumResolution();
 
-    displayGreetings();
-
     Buffer *buffer = loadFile(YM3_FILE);
-
     initPlayer(buffer);
 
+    displayGreetings();
     displayInfo(buffer);
-
     displayHeaders();
 
     locate(0, 9);
@@ -218,15 +215,10 @@ void run()
 
     while ((read_byte(SCANCODE_ADDRESS) != 129))
     {
-
         displayKeyBoardStatus();
-
         displayStatusBar();
-
         displayRegistersBar();
-
         displayVuMeter();
-
         // let the CPU breathing a little
         Vsync();
     }
