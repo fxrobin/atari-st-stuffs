@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "buffer.h": "c",
-        "cstdlib": "cpp",
-        "type_traits": "c"
-    }
-}
