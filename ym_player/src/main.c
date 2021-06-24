@@ -38,26 +38,30 @@ void initPlayer(Buffer *buffer)
     musicData = (buffer->data) + 4;               // pointing on real data, excluding first 4 bytes "YM3!"
 }
 
+/**
+ * writes a byte at the specified register of the PSG.
+ * Note: function is "static inline" in order to avoid stack usage and optimize function calls
+ * */
+static inline void write_PSG(__uint8_t registerIndex, __uint8_t registerValue)
+{
+    (*PSG_REGISTER_INDEX_ADDRESS) = registerIndex;
+    (*PSG_REGISTER_DATA_ADDRESS) = registerValue;
+}
+
 void soundOff()
 {
-    for (__uint8_t i = 0; i < 14; i++)
-    {
-        write_byte(i, PSG_REGISTER_INDEX_ADDRESS);
-        write_byte(0, PSG_REGISTER_DATA_ADDRESS);
-    }
+    write_PSG(7, 0b00111111); // R7 : mixer, deactivate (1 !) all
 }
 
 void __attribute__((interrupt)) timerA_Routine_C()
 {
-
     if (currentMusicFrame < totalMusicFrames)
     {
         __uint8_t *address = musicData + currentMusicFrame++;
 
         for (int i = 0; i < 14; i++)
         {
-            *PSG_REGISTER_INDEX_ADDRESS = i;
-            *PSG_REGISTER_DATA_ADDRESS = *(address);
+            write_PSG(i, *address);
             address += totalMusicFrames;
         }
     }
@@ -178,7 +182,7 @@ void displayVuMeter()
     for (int i = 8; i < 11 ; i++)
     {
         write_byte(i, PSG_REGISTER_INDEX_ADDRESS);
-        __uint8_t level = read_byte(PSG_REGISTER_INDEX_ADDRESS) & 0b00001111;
+        __uint8_t level = read_byte(PSG_REGISTER_INDEX_ADDRESS) & 0b00001111; // get only 4 low bits.
 
         locate(11, 16 + (i - 8));
         for (int j = 0; j < level * 2; j++)
@@ -204,7 +208,7 @@ void run()
     locate(0, 9);
     printf("Removing KEYCLICK Sound");
     __uint8_t originalKeyClick = read_byte((__uint8_t *)0x00000484);
-    write_byte(0, (__uint8_t *)0x484);
+    write_byte(0b11111110 & originalKeyClick, (__uint8_t *)0x484);
 
     Jdisint(13);
     Xbtimer(0, 7, 246, asm_timerA_Routine); // 50 Hz
